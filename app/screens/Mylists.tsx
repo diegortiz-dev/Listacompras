@@ -5,7 +5,7 @@ import { StackNavigationProp } from '@react-navigation/stack';
 import {Ionicons} from '@expo/vector-icons'
 import { carregarListas, Lista } from '../src/services/storage';
 
-type RootStackParamList = { Home: undefined, CreateListScreen: undefined, MyLists: undefined };
+type RootStackParamList = { Home: undefined, CreateListScreen: undefined, MyLists: undefined, ListDetails: { listId: string } };
 type MyListsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MyLists'>;
 
 export default function MyLists() {
@@ -67,7 +67,12 @@ export default function MyLists() {
 
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                 {listas.map((lista) => (
-                    <View key={lista.id} style={styles.listCard}>
+                    <TouchableOpacity
+                        key={lista.id}
+                        style={styles.listCard}
+                        onPress={() => {navigation.navigate('ListDetails', { listId: lista.id })}}
+                        activeOpacity={0.85}
+                    >
                         <View style={styles.cardTopRow}>
                             <View style={styles.cardTitleRow}>
                                 <Text style={styles.listTitle}>{lista.title}</Text>
@@ -77,9 +82,9 @@ export default function MyLists() {
                                     </View>
                                 )}
                             </View>
-                            <TouchableOpacity>
+                            <View>
                                 <Ionicons name="ellipsis-vertical" size={18} color="#111111" />
-                            </TouchableOpacity>
+                            </View>
                         </View>
 
                         <Text style={styles.listDate}>Criada em {formatarData(lista.date)}</Text>
@@ -88,7 +93,7 @@ export default function MyLists() {
                             <Text style={styles.listProgress}>{contarMarcados(lista)}/{lista.itens.length} Itens marcados</Text>
                             {!!calcularTotalPreco(lista) && <Text style={styles.listPrice}>{calcularTotalPreco(lista)}</Text>}
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
         </View>

@@ -89,3 +89,18 @@ export async function SalvarItem(id: string, name: string, quantity: number, pri
     throw error;
   }
 }
+
+export async function DeletarItem(listaId: string, itemId: string): Promise<void> {
+  try {
+    const listas = await carregarListas();  
+    const lista = listas.find(l => l.id === listaId);
+    if (!lista) {
+      throw new Error("Erro: lista não encontrada");
+    } 
+    lista.itens = lista.itens.filter(item => item.id !== itemId);
+    await AsyncStorage.setItem(LISTAS_KEY, JSON.stringify(listas));
+  } catch (error) {
+    console.error("Erro ao deletar o item:", error);
+    throw error;
+  }
+}  

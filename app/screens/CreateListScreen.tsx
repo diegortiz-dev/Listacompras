@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView, KeyboardAvoidingView, Platform,Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import {Ionicons} from '@expo/vector-icons'
-import { SalvarItem, salvarLista, Item } from '../src/services/storage';
+import { SalvarItem, salvarLista, Item, DeletarItem} from '../src/services/storage';
 
-type RootStackParamList = { Home: undefined, CreateListScreen: undefined, MyLists: undefined };
+type RootStackParamList = { Home: undefined, CreateListScreen: undefined, MyLists: undefined, ListDetails: { listId: string } };
 type CreateListScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateListScreen'>;
 
 export default function CreateListScreen() {
@@ -41,15 +41,36 @@ export default function CreateListScreen() {
 
     }
 
+function handleRemover(id: string) {
+    Alert.alert('Remover', 'Deseja remover este item?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Remover',
+        style: 'destructive',
+        onPress: () => {
+          DeletarItem(idLista, id).then(() => {
+            setItens((prev) => prev.filter((i) => i.id !== id));
+          });
+        },
+      },
+    ]);
+  }
+
+
 function renderCard({ item }: { item: Item }) {
     return (
-      <TouchableOpacity
-        style={styles.carditens}
-        onPress={() => {}}
-      >
-        <Text style={styles.cardNome}>{item.name}</Text>
-        <Text style={styles.cardQtd}>Qtd: {item.quantity}</Text>
-      </TouchableOpacity>
+            <View style={styles.carditens}>
+                <View style={styles.cardTextColumn}>
+                        <Text style={styles.cardNome}>{item.name}</Text>
+                        <Text style={styles.cardQtd}>Qtd: {item.quantity}</Text>
+                </View>
+                    <TouchableOpacity
+                        style={styles.cardCloseButton}
+                        onPress={() => handleRemover(item.id)}
+                         hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                        <Ionicons name="close-outline" size={30} color="#ff0000ff" />
+                </TouchableOpacity>
+            </View>
     );
 }
 
@@ -139,6 +160,16 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 12,
         marginBottom: 6,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    cardTextColumn: {
+        flex: 1,
+        paddingRight: 12,
+    },
+    cardCloseButton: {
+        padding: 4,
     },
 
     lista: {

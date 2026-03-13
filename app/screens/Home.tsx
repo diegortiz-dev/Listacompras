@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
-type RootStackParamList = { Home: undefined, CreateListScreen: undefined, MyLists: undefined };
+type RootStackParamList = { Home: undefined, CreateListScreen: undefined, MyLists: undefined, ListDetails: { listId: string } };
 type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function Home() {
@@ -41,6 +41,7 @@ export default function Home() {
                     </TouchableOpacity>
                 </View>
             </View>
+            <Text style={styles.creditos}>Feito por Diego Ortiz</Text>
         </View>
     );
 }
@@ -137,5 +138,17 @@ const styles = StyleSheet.create({
         fontSize: 22,
         color: '#ffffff',
         fontWeight: 'bold',
+    },
+    creditos: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        marginTop: 20,
+        fontSize: 14,
+        color: '#656565ff',
+        alignSelf: 'center',
+        textAlign: 'center',
+        marginBottom: 18,
     },
 });
