@@ -19,14 +19,14 @@ export type Item = {
 };
 
 
-export async function salvarLista(id: string, title: string, itens: Item[], date?: string): Promise<Lista> {
+export async function salvarLista(id: string, title: string, itens: Item[], date?: string, completed?: boolean): Promise<Lista> {
   try {
     const listas = await carregarListas();
     const existingIndex = listas.findIndex(lista => lista.id === id);
     const listaAtualizada: Lista = {
       id: id || Date.now().toString(),
       title: title,
-      completed: existingIndex >= 0 ? listas[existingIndex].completed : false,
+      completed: completed !== undefined ? completed : (existingIndex >= 0 ? listas[existingIndex].completed : false),
       date: date ?? (existingIndex >= 0 ? listas[existingIndex].date : new Date().toISOString()),
       itens: itens,
     };

@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { useCallback, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, TouchableWithoutFeedback } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,7 +7,7 @@ import { carregarListas, Lista, DeletarLista, CopiarLista } from '../src/service
 
 type RootStackParamList = {
   Home: undefined,
-  CreateListScreen: undefined,
+  CreateListScreen: { listId?: string } | undefined,
   MyLists: undefined,
   ListDetails: { listId: string }
 };
@@ -20,6 +20,8 @@ export default function MyLists() {
 
     const [listas, setListas] = useState<Lista[]>([]);
     const [openedMenuId, setOpenedMenuId] = useState<string | null>(null);
+    const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+    const menuRefs = useRef<Record<string, View | null>>({});
 
     const carregar = useCallback(async () => {
         const resultado = await carregarListas();
@@ -34,30 +36,19 @@ export default function MyLists() {
 
     function formatarData(dataIso: string) {
         const data = new Date(dataIso);
-
-        if (Number.isNaN(data.getTime())) {
-            return '';
-        }
-
+        if (Number.isNaN(data.getTime())) return '';
         return data.toLocaleDateString('pt-BR');
     }
 
     function formatarPreco(total: number) {
-        const valor = total.toFixed(2).replace('.', ',');
-        return `R$ ${valor}`;
+        return `R$ ${total.toFixed(2).replace('.', ',')}`;
     }
 
     function calcularTotalPreco(lista: Lista) {
         const total = lista.itens.reduce((acc, item) => {
-
-            if (!item.price || item.price <= 0) {
-                return acc;
-            }
-
+            if (!item.price || item.price <= 0) return acc;
             return acc + item.price * item.quantity;
-
         }, 0);
-
         return total > 0 ? formatarPreco(total) : '';
     }
 
@@ -65,21 +56,27 @@ export default function MyLists() {
         return lista.itens.filter((item) => item.completed).length;
     }
 
-    function toggleMenu(id: string) {
-        setOpenedMenuId((prev) => (prev === id ? null : id));
+    function openMenu(id: string) {
+        const ref = menuRefs.current[id];
+        if (!ref) return;
+        ref.measure((_fx, _fy, width, height, px, py) => {
+            setMenuPos({ x: px + width, y: py + height });
+            setOpenedMenuId(id);
+        });
+    }
+
+    function closeMenu() {
+        setOpenedMenuId(null);
     }
 
     async function handleCopy(id: string) {
-
+        closeMenu();
         await CopiarLista(id);
-
-        setOpenedMenuId(null);
-
         carregar();
     }
 
     async function handleDelete(id: string) {
-
+        closeMenu();
         Alert.alert(
             'Excluir lista',
             'Tem certeza que deseja excluir esta lista?',
@@ -89,17 +86,15 @@ export default function MyLists() {
                     text: 'Excluir',
                     style: 'destructive',
                     onPress: async () => {
-
                         await DeletarLista(id);
-
-                        setOpenedMenuId(null);
-
                         carregar();
                     }
                 }
             ]
         );
     }
+
+    const menuLista = listas.find((l) => l.id === openedMenuId);
 
     return (
 
@@ -130,73 +125,42 @@ export default function MyLists() {
             <ScrollView
                 contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
+                onScrollBeginDrag={closeMenu}
             >
 
                 {listas.map((lista) => (
 
-                    <View key={lista.id} style={styles.listCard}>
+                    <TouchableOpacity
+                        key={lista.id}
+                        style={styles.listCard}
+                        activeOpacity={0.85}
+                        onPress={() => { closeMenu(); navigation.navigate('ListDetails', { listId: lista.id }); }}
+                    >
 
                         <View style={styles.cardTopRow}>
 
-                            <TouchableOpacity
-                                style={styles.cardTitleRowTouchable}
-                                onPress={() => navigation.navigate('ListDetails', { listId: lista.id })}
-                                activeOpacity={0.85}
-                            >
+                            <View style={styles.cardTitleRow}>
 
-                                <View style={styles.cardTitleRow}>
+                                <Text style={styles.listTitle} numberOfLines={1}>
+                                    {lista.title}
+                                </Text>
 
-                                    <Text style={styles.listTitle}>
-                                        {lista.title}
-                                    </Text>
-
-                                    {!lista.completed && (
-
-                                        <View style={styles.badge}>
-                                            <Text style={styles.badgeText}>Ativa</Text>
-                                        </View>
-
-                                    )}
-
+                                <View style={[styles.badge, lista.completed ? styles.badgeFinalizada : styles.badgeAtiva]}>
+                                    <Text style={styles.badgeText}>{lista.completed ? 'Finalizada' : 'Ativa'}</Text>
                                 </View>
 
-                            </TouchableOpacity>
+                            </View>
 
-                            <View style={styles.menuWrapper}>
-
+                            <View
+                                ref={(r) => { menuRefs.current[lista.id] = r; }}
+                                collapsable={false}
+                            >
                                 <TouchableOpacity
-                                    onPress={() => toggleMenu(lista.id)}
-                                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                    onPress={(e) => { e.stopPropagation(); openMenu(lista.id); }}
+                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                 >
                                     <Ionicons name="ellipsis-vertical" size={18} color="#111" />
                                 </TouchableOpacity>
-
-                                {openedMenuId === lista.id && (
-
-                                    <View style={styles.menuContainer}>
-
-                                        <TouchableOpacity
-                                            style={styles.menuButton}
-                                            onPress={() => handleCopy(lista.id)}
-                                        >
-                                            <Text style={styles.menuButtonText}>
-                                                Copiar Lista
-                                            </Text>
-                                        </TouchableOpacity>
-
-                                        <TouchableOpacity
-                                            style={styles.menuButton}
-                                            onPress={() => handleDelete(lista.id)}
-                                        >
-                                            <Text style={styles.menuButtonText}>
-                                                Excluir Lista
-                                            </Text>
-                                        </TouchableOpacity>
-
-                                    </View>
-
-                                )}
-
                             </View>
 
                         </View>
@@ -221,11 +185,56 @@ export default function MyLists() {
 
                         </View>
 
-                    </View>
+                    </TouchableOpacity>
 
                 ))}
 
             </ScrollView>
+
+            {/* Menu dropdown como Modal para sobrepor corretamente */}
+            <Modal
+                visible={openedMenuId !== null}
+                transparent
+                animationType="none"
+                onRequestClose={closeMenu}
+            >
+                <TouchableWithoutFeedback onPress={closeMenu}>
+                    <View style={styles.modalBackdrop}>
+                        <TouchableWithoutFeedback>
+                            <View style={[styles.menuContainer, { top: menuPos.y, right: undefined, left: menuPos.x - 160 }]}>
+
+                                <TouchableOpacity
+                                    style={styles.menuButton}
+                                    onPress={() => {
+                                        closeMenu();
+                                        if (menuLista) navigation.navigate('CreateListScreen', { listId: menuLista.id });
+                                    }}
+                                >
+                                    <Ionicons name="pencil-outline" size={15} color="#333" />
+                                    <Text style={styles.menuButtonText}>Editar Lista</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuButton}
+                                    onPress={() => menuLista && handleCopy(menuLista.id)}
+                                >
+                                    <Ionicons name="copy-outline" size={15} color="#333" />
+                                    <Text style={styles.menuButtonText}>Copiar Lista</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[styles.menuButton, styles.menuButtonLast]}
+                                    onPress={() => menuLista && handleDelete(menuLista.id)}
+                                >
+                                    <Ionicons name="trash-outline" size={15} color="#c0392b" />
+                                    <Text style={[styles.menuButtonText, styles.menuButtonTextDanger]}>Excluir Lista</Text>
+                                </TouchableOpacity>
+
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
 
         </View>
 
@@ -291,74 +300,89 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderWidth: 1,
         borderColor: '#8f8f8f',
-        overflow: 'visible',
     },
 
     cardTopRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
+        gap: 8,
     },
 
     cardTitleRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-    },
-
-    cardTitleRowTouchable: {
+        gap: 8,
         flex: 1,
+        overflow: 'hidden',
     },
 
-    menuWrapper: {
-        position: 'relative',
-        alignItems: 'flex-end',
-        zIndex: 100,
+    modalBackdrop: {
+        flex: 1,
     },
 
     menuContainer: {
         position: 'absolute',
-        top: 24,
-        right: 0,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#ffffff',
         borderWidth: 1,
         borderColor: '#cfcfcf',
-        borderRadius: 8,
+        borderRadius: 10,
         overflow: 'hidden',
-        minWidth: 160,
-        elevation: 10,
-        zIndex: 100,
+        width: 170,
+        elevation: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 8,
     },
 
     menuButton: {
-        paddingVertical: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 13,
         paddingHorizontal: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#e0e0e0',
-        zIndex: 101,
-        elevation: 11,
+        borderBottomColor: '#efefef',
+    },
+
+    menuButtonLast: {
+        borderBottomWidth: 0,
     },
 
     menuButtonText: {
         color: '#333',
         fontWeight: '600',
+        fontSize: 14,
+    },
+
+    menuButtonTextDanger: {
+        color: '#c0392b',
     },
 
     listTitle: {
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
         color: '#1a1a1a',
+        flexShrink: 1,
     },
 
     badge: {
-        backgroundColor: '#0a7a38',
         borderRadius: 10,
         paddingHorizontal: 10,
-        paddingVertical: 2,
+        paddingVertical: 3,
+    },
+
+    badgeAtiva: {
+        backgroundColor: '#0a7a38',
+    },
+
+    badgeFinalizada: {
+        backgroundColor: '#8a8a8a',
     },
 
     badgeText: {
-        fontSize: 12,
+        fontSize: 11,
         color: '#ffffff',
         fontWeight: 'bold',
     },

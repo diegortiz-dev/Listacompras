@@ -1,21 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView, KeyboardAvoidingView, Platform,Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import {Ionicons} from '@expo/vector-icons'
-import { SalvarItem, salvarLista, Item, DeletarItem} from '../src/services/storage';
+import { SalvarItem, salvarLista, Item, DeletarItem, carregarListas} from '../src/services/storage';
 
-type RootStackParamList = { Home: undefined, CreateListScreen: undefined, MyLists: undefined, ListDetails: { listId: string } };
+type RootStackParamList = { Home: undefined, CreateListScreen: { listId?: string } | undefined, MyLists: undefined, ListDetails: { listId: string } };
 type CreateListScreenNavigationProp = StackNavigationProp<RootStackParamList, 'CreateListScreen'>;
+type CreateListScreenRouteProp = RouteProp<RootStackParamList, 'CreateListScreen'>;
 
 export default function CreateListScreen() {
     const navigation = useNavigation<CreateListScreenNavigationProp>();
-    const [idLista] = useState(() => Date.now().toString());
+    const route = useRoute<CreateListScreenRouteProp>();
+    const editListId = route.params?.listId;
+    const isEditing = !!editListId;
+    const [idLista] = useState(() => editListId ?? Date.now().toString());
     const [tituloLista, setTituloLista] = useState('');
     const [nomeItem, setNomeItem] = useState('');
     const [qtdItem, setQtdItem] = useState('');
     const [itens, setItens] = useState<Item[]>([]);
-    const [listaCriada, setListaCriada] = useState(false);
+    const [listaCriada, setListaCriada] = useState(isEditing);
+
+    useEffect(() => {
+        if (isEditing) {
+            carregarListas().then((listas) => {
+                const lista = listas.find((l) => l.id === editListId);
+                if (lista) {
+                    setTituloLista(lista.title);
+                    setItens(lista.itens);
+                }
+            });
+        }
+    }, [editListId, isEditing]);
 
     async function adicionarItem() {
         const nome = nomeItem.trim();
@@ -86,7 +102,7 @@ function renderCard({ item }: { item: Item }) {
                         <TouchableOpacity onPress={() => {navigation.goBack()}}>
                             <Ionicons name="arrow-back" size={32} color="#000000ff" />
                         </TouchableOpacity>
-                        <Text style={styles.headerTitle}>Nova Lista de Compras</Text>
+                        <Text style={styles.headerTitle}>{isEditing ? 'Editar Lista' : 'Nova Lista de Compras'}</Text>
                     </View>
                     <View style={styles.card}>
 
@@ -146,7 +162,7 @@ function renderCard({ item }: { item: Item }) {
 
                 <View style={styles.footer}>
                     <TouchableOpacity style={styles.footerButton} onPress={salvarListaFinal}>
-                        <Text style={styles.footerButtonText}>Salvar lista</Text>
+                        <Text style={styles.footerButtonText}>{isEditing ? 'Salvar alterações' : 'Salvar lista'}</Text>
                     </TouchableOpacity>
                 </View>
             </KeyboardAvoidingView>

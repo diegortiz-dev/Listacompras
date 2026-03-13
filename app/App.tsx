@@ -9,7 +9,7 @@ import ListDetails from './screens/ListDetails'
 
 export type RootStackParamList = {
  Home: undefined,
- CreateListScreen: undefined,
+ CreateListScreen: { listId?: string } | undefined,
  MyLists: undefined,
  ListDetails: { listId: string }
 };
