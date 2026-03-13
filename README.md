@@ -7,7 +7,9 @@ Aplicativo mobile de lista de compras, feito para organizar suas compras do dia 
 - **Criar listas de compras** — crie listas personalizadas como "Compras do mês", "Churrasco", "Feira", etc.
 - **Adicionar itens** — adicione produtos com nome e quantidade.
 - **Ver minhas listas** — acesse todas as listas salvas no dispositivo.
-- **Ver valor total da lista** - veja o valor do que é comprado conforme é marcado na lista.
+- **Detalhes da lista** — acompanhe progresso, total e itens por lista.
+- **Marcar itens** — confira o que ja foi comprado e atualize o andamento.
+- **Valor total da lista** - veja o total conforme os itens sao marcados e precificados.
 - **Armazenamento local** — seus dados ficam salvos no celular, sem precisar de internet.
 
 ## 🛠️ Tecnologias e por quê
@@ -30,7 +32,8 @@ SuperList/
 │   ├── screens/
 │   │   ├── Home.tsx             # Tela inicial
 │   │   ├── CreateListScreen.tsx # Tela de criação de lista
-│   │   └── Mylists.tsx          # Tela de listas salvas
+│   │   ├── Mylists.tsx          # Tela de listas salvas
+│   │   └── ListDetails.tsx      # Tela de detalhes da lista
 │   └── src/
 │       ├── styles.tsx           # Estilos globais
 │       └── services/
