@@ -104,3 +104,24 @@ export async function DeletarItem(listaId: string, itemId: string): Promise<void
     throw error;
   }
 }  
+
+export async function CopiarLista(id: string): Promise<Lista | null> {
+  try {
+    const listas = await carregarListas();
+    const lista = listas.find(l => l.id === id);
+    if (!lista) {
+      throw new Error("Erro: lista não encontrada");
+    }
+    const novaLista: Lista = {
+      ...lista,
+      id: Date.now().toString(),
+      title: `Cópia de ${lista.title}`,
+    };
+    listas.push(novaLista);
+    await AsyncStorage.setItem(LISTAS_KEY, JSON.stringify(listas));
+    return novaLista;
+  } catch (error) {
+    console.error("Erro ao copiar a lista:", error);
+    return null;
+  }
+}
