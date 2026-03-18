@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, ScrollView, KeyboardAvoidingView, Platform, Alert, Animated, Easing } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +28,10 @@ export default function CreateListScreen() {
     const [unitItem, setUnitItem] = useState('un');
     const [itens, setItens] = useState<Item[]>([]);
     const [listaCriada, setListaCriada] = useState(isEditing);
+    const screenOpacity = useRef(new Animated.Value(0)).current;
+    const headerTranslate = useRef(new Animated.Value(-20)).current;
+    const cardScale = useRef(new Animated.Value(0.96)).current;
+    const footerTranslate = useRef(new Animated.Value(24)).current;
 
     useEffect(() => {
         if (isEditing) {
@@ -40,6 +44,35 @@ export default function CreateListScreen() {
             });
         }
     }, [editListId, isEditing]);
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(screenOpacity, {
+                toValue: 1,
+                duration: 320,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.spring(cardScale, {
+                toValue: 1,
+                speed: 14,
+                bounciness: 10,
+                useNativeDriver: true,
+            }),
+            Animated.spring(headerTranslate, {
+                toValue: 0,
+                speed: 14,
+                bounciness: 10,
+                useNativeDriver: true,
+            }),
+            Animated.timing(footerTranslate, {
+                toValue: 0,
+                duration: 280,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [cardScale, footerTranslate, headerTranslate, screenOpacity]);
 
     async function adicionarItem() {
         const nome = nomeItem.trim();
@@ -105,14 +138,14 @@ function renderCard({ item }: { item: Item }) {
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
             >
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <View style={styles.header}>
+                <Animated.ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} style={{ opacity: screenOpacity }}>
+                    <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslate }] }]}> 
                         <TouchableOpacity onPress={() => {navigation.goBack()}}>
                             <Ionicons name="arrow-back" size={32} color="#000000ff" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>{isEditing ? 'Editar Lista' : 'Nova Lista de Compras'}</Text>
-                    </View>
-                    <View style={styles.card}>
+                    </Animated.View>
+                    <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}> 
 
                         <Text style={styles.cardSectionTitle}>Informações da Lista</Text>
 
@@ -161,8 +194,8 @@ function renderCard({ item }: { item: Item }) {
                         <TouchableOpacity style={styles.btn} onPress={adicionarItem}>
                             <Text style={styles.btnicone}>+   Adicionar</Text>
                         </TouchableOpacity>
-                    </View>
-                    <View style={styles.card}>
+                    </Animated.View>
+                    <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}> 
 
                         <Text style={styles.cardSectionTitle}>Itens ({itens.length})</Text>
                         {itens.length === 0 ? (
@@ -177,14 +210,14 @@ function renderCard({ item }: { item: Item }) {
                     />
                 )}
 
-                    </View>
-                </ScrollView>
+                    </Animated.View>
+                </Animated.ScrollView>
 
-                <View style={styles.footer}>
+                <Animated.View style={[styles.footer, { transform: [{ translateY: footerTranslate }] }]}> 
                     <TouchableOpacity style={styles.footerButton} onPress={salvarListaFinal}>
                         <Text style={styles.footerButtonText}>{isEditing ? 'Salvar alterações' : 'Salvar lista'}</Text>
                     </TouchableOpacity>
-                </View>
+                </Animated.View> 
             </KeyboardAvoidingView>
     );
 }

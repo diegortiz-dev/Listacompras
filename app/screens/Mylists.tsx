@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, TouchableWithoutFeedback } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, Animated, Easing } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,17 +22,66 @@ export default function MyLists() {
     const [openedMenuId, setOpenedMenuId] = useState<string | null>(null);
     const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
     const menuRefs = useRef<Record<string, View | null>>({});
+    const screenOpacity = useRef(new Animated.Value(0)).current;
+    const headerTranslate = useRef(new Animated.Value(-30)).current;
+    const ctaScale = useRef(new Animated.Value(0.9)).current;
+    const cardAnimations = useRef<Record<string, Animated.Value>>({}).current;
 
     const carregar = useCallback(async () => {
         const resultado = await carregarListas();
         setListas(resultado);
     }, []);
 
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(screenOpacity, {
+                toValue: 1,
+                duration: 300,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.spring(headerTranslate, {
+                toValue: 0,
+                speed: 14,
+                bounciness: 10,
+                useNativeDriver: true,
+            }),
+            Animated.spring(ctaScale, {
+                toValue: 1,
+                speed: 12,
+                bounciness: 12,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [ctaScale, headerTranslate, screenOpacity]);
+
     useFocusEffect(
         useCallback(() => {
             carregar();
         }, [carregar])
     );
+
+    useEffect(() => {
+        if (!listas.length) return;
+
+        listas.forEach((lista) => {
+            if (!cardAnimations[lista.id]) {
+                cardAnimations[lista.id] = new Animated.Value(0);
+            }
+        });
+
+        const animations = listas.map((lista, index) =>
+            Animated.timing(cardAnimations[lista.id], {
+                toValue: 1,
+                duration: 320,
+                delay: index * 70,
+                easing: Easing.out(Easing.exp),
+                useNativeDriver: true,
+            })
+        );
+
+        Animated.stagger(60, animations).start();
+    }, [cardAnimations, listas]);
 
     function formatarData(dataIso: string) {
         const data = new Date(dataIso);
@@ -98,9 +147,9 @@ export default function MyLists() {
 
     return (
 
-        <View style={styles.container}>
+        <Animated.View style={[styles.container, { opacity: screenOpacity }]}> 
 
-            <View style={styles.header}>
+            <Animated.View style={[styles.header, { transform: [{ translateY: headerTranslate }] }]}> 
 
                 <View style={styles.headerLeft}>
 
@@ -113,91 +162,105 @@ export default function MyLists() {
                 </View>
 
                 <TouchableOpacity
-                    style={styles.headerButton}
+                    style={[styles.headerButton, { transform: [{ scale: ctaScale }] }]}
                     onPress={() => navigation.navigate('CreateListScreen')}
                 >
                     <Ionicons name="cart" size={18} color="#ffffff" />
                     <Text style={styles.headerButtonText}>Nova Lista</Text>
                 </TouchableOpacity>
 
-            </View>
+            </Animated.View>
 
-            <ScrollView
+            <Animated.ScrollView
                 contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
                 onScrollBeginDrag={closeMenu}
             >
 
                 {listas.length === 0 && (
-                    <View style={styles.emptyState}>
+                    <Animated.View style={[styles.emptyState, { opacity: screenOpacity }]}> 
                         <Ionicons name="cart-outline" size={64} color="#b0b0b0" />
                         <Text style={styles.emptyTitle}>Nenhuma lista ainda</Text>
                         <Text style={styles.emptySubtitle}>Crie sua primeira lista de compras tocando em "Nova Lista"</Text>
-                    </View>
+                    </Animated.View>
                 )}
 
                 {listas.map((lista) => (
 
-                    <TouchableOpacity
+                    <Animated.View
                         key={lista.id}
-                        style={styles.listCard}
-                        activeOpacity={0.85}
-                        onPress={() => { closeMenu(); navigation.navigate('ListDetails', { listId: lista.id }); }}
+                        style={{
+                            transform: [
+                                {
+                                    translateY: (cardAnimations[lista.id] ?? screenOpacity).interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [14, 0],
+                                    }),
+                                },
+                            ],
+                            opacity: (cardAnimations[lista.id] ?? screenOpacity),
+                        }}
                     >
+                        <TouchableOpacity
+                            style={styles.listCard}
+                            activeOpacity={0.85}
+                            onPress={() => { closeMenu(); navigation.navigate('ListDetails', { listId: lista.id }); }}
+                        >
 
-                        <View style={styles.cardTopRow}>
+                            <View style={styles.cardTopRow}>
 
-                            <View style={styles.cardTitleRow}>
+                                <View style={styles.cardTitleRow}>
 
-                                <Text style={styles.listTitle} numberOfLines={1}>
-                                    {lista.title}
-                                </Text>
+                                    <Text style={styles.listTitle} numberOfLines={1}>
+                                        {lista.title}
+                                    </Text>
 
-                                <View style={[styles.badge, lista.completed ? styles.badgeFinalizada : styles.badgeAtiva]}>
-                                    <Text style={styles.badgeText}>{lista.completed ? 'Finalizada' : 'Ativa'}</Text>
+                                    <View style={[styles.badge, lista.completed ? styles.badgeFinalizada : styles.badgeAtiva]}>
+                                        <Text style={styles.badgeText}>{lista.completed ? 'Finalizada' : 'Ativa'}</Text>
+                                    </View>
+
+                                </View>
+
+                                <View
+                                    ref={(r) => { menuRefs.current[lista.id] = r; }}
+                                    collapsable={false}
+                                >
+                                    <TouchableOpacity
+                                        onPress={(e) => { e.stopPropagation(); openMenu(lista.id); }}
+                                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                    >
+                                        <Ionicons name="ellipsis-vertical" size={18} color="#111" />
+                                    </TouchableOpacity>
                                 </View>
 
                             </View>
 
-                            <View
-                                ref={(r) => { menuRefs.current[lista.id] = r; }}
-                                collapsable={false}
-                            >
-                                <TouchableOpacity
-                                    onPress={(e) => { e.stopPropagation(); openMenu(lista.id); }}
-                                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                >
-                                    <Ionicons name="ellipsis-vertical" size={18} color="#111" />
-                                </TouchableOpacity>
-                            </View>
-
-                        </View>
-
-                        <Text style={styles.listDate}>
-                            Criada em {formatarData(lista.date)}
-                        </Text>
-
-                        <View style={styles.cardBottomRow}>
-
-                            <Text style={styles.listProgress}>
-                                {contarMarcados(lista)}/{lista.itens.length} Itens marcados
+                            <Text style={styles.listDate}>
+                                Criada em {formatarData(lista.date)}
                             </Text>
 
-                            {!!calcularTotalPreco(lista) && (
+                            <View style={styles.cardBottomRow}>
 
-                                <Text style={styles.listPrice}>
-                                    {calcularTotalPreco(lista)}
+                                <Text style={styles.listProgress}>
+                                    {contarMarcados(lista)}/{lista.itens.length} Itens marcados
                                 </Text>
 
-                            )}
+                                {!!calcularTotalPreco(lista) && (
 
-                        </View>
+                                    <Text style={styles.listPrice}>
+                                        {calcularTotalPreco(lista)}
+                                    </Text>
 
-                    </TouchableOpacity>
+                                )}
+
+                            </View>
+
+                        </TouchableOpacity>
+                    </Animated.View>
 
                 ))}
 
-            </ScrollView>
+            </Animated.ScrollView>
 
         
             <Modal
@@ -244,7 +307,7 @@ export default function MyLists() {
                 </TouchableWithoutFeedback>
             </Modal>
 
-        </View>
+        </Animated.View>
 
     );
 }

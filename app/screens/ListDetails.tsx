@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Animated, Easing } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,6 +16,11 @@ export default function ListDetails() {
 
 	const [lista, setLista] = useState<Lista | null>(null);
 	const [priceInputs, setPriceInputs] = useState<Record<string, string>>({});
+	const screenOpacity = useRef(new Animated.Value(0)).current;
+	const headerTranslate = useRef(new Animated.Value(-20)).current;
+	const summaryScale = useRef(new Animated.Value(0.96)).current;
+	const footerTranslate = useRef(new Animated.Value(24)).current;
+	const itemAnimations = useRef<Record<string, Animated.Value>>({}).current;
 
 	const carregar = useCallback(async () => {
 		const listas = await carregarListas();
@@ -50,6 +55,54 @@ export default function ListDetails() {
 			return acc + item.price * item.quantity;
 		}, 0);
 	}, [itens]);
+
+	useEffect(() => {
+		Animated.parallel([
+			Animated.timing(screenOpacity, {
+				toValue: 1,
+				duration: 300,
+				easing: Easing.out(Easing.ease),
+				useNativeDriver: true,
+			}),
+			Animated.spring(headerTranslate, {
+				toValue: 0,
+				speed: 14,
+				bounciness: 10,
+				useNativeDriver: true,
+			}),
+			Animated.spring(summaryScale, {
+				toValue: 1,
+				speed: 14,
+				bounciness: 10,
+				useNativeDriver: true,
+			}),
+			Animated.timing(footerTranslate, {
+				toValue: 0,
+				duration: 260,
+				easing: Easing.out(Easing.cubic),
+				useNativeDriver: true,
+			}),
+		]).start();
+	}, [footerTranslate, headerTranslate, screenOpacity, summaryScale]);
+
+	useEffect(() => {
+		if (!itens.length) return;
+		itens.forEach((item) => {
+			if (!itemAnimations[item.id]) {
+				itemAnimations[item.id] = new Animated.Value(0);
+			}
+		});
+		const animations = itens.map((item, index) =>
+			Animated.timing(itemAnimations[item.id], {
+				toValue: 1,
+				duration: 260,
+				delay: index * 70,
+				easing: Easing.out(Easing.exp),
+				useNativeDriver: true,
+			})
+		);
+		Animated.stagger(60, animations).start();
+	}, [itemAnimations, itens]);
 
 	function formatarQtd(qty: number, unit?: string): string {
 		const qtdStr = qty % 1 === 0 ? `${qty}` : `${qty}`.replace('.', ',');
@@ -99,9 +152,9 @@ export default function ListDetails() {
 	const finalizada = lista?.completed ?? false;
 
 	return (
-		<View style={styles.container}>
+		<Animated.View style={[styles.container, { opacity: screenOpacity }]}> 
 			{/* Header */}
-			<View style={styles.header}>
+			<Animated.View style={[styles.header, { transform: [{ translateY: headerTranslate }] }]}> 
 				<TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
 					<Ionicons name="arrow-back" size={28} color="#000" />
 				</TouchableOpacity>
@@ -120,13 +173,13 @@ export default function ListDetails() {
 					<Ionicons name="pencil" size={16} color="#ffffff" />
 					<Text style={styles.editButtonText}>Editar</Text>
 				</TouchableOpacity>
-			</View>
+			</Animated.View>
 
 			
 			<ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
 
 				
-				<View style={styles.summaryCard}>
+				<Animated.View style={[styles.summaryCard, { transform: [{ scale: summaryScale }] }]}> 
 					<View style={styles.summaryRow}>
 						<Text style={styles.summaryLabel}>Progresso da compra</Text>
 						<Text style={styles.summaryValue}>{itensMarcados}/{itens.length} Itens</Text>
@@ -138,18 +191,31 @@ export default function ListDetails() {
 						<Text style={styles.totalLabel}>Total</Text>
 						<Text style={styles.totalValue}>{totalPreco > 0 ? formatarPreco(totalPreco) : 'R$ 0,00'}</Text>
 					</View>
-				</View>
+				</Animated.View>
 
 				
 				<View style={styles.itemsCard}>
 					{itens.length === 0 ? (
 						<Text style={styles.emptyText}>Nenhum item adicionado.</Text>
 					) : (
-						itens.map((item) => (
-							<View
-								key={item.id}
-								style={[styles.itemRow, item.completed ? styles.itemRowCompleted : styles.itemRowDefault]}
-							>
+							itens.map((item, index) => (
+								<Animated.View
+									key={item.id}
+									style={{
+										opacity: itemAnimations[item.id] ?? screenOpacity,
+										transform: [
+											{
+												translateY: (itemAnimations[item.id] ?? screenOpacity).interpolate({
+													inputRange: [0, 1],
+													outputRange: [12, 0],
+												}),
+											},
+										],
+									}}
+								>
+									<View
+										style={[styles.itemRow, item.completed ? styles.itemRowCompleted : styles.itemRowDefault]}
+									>
 								<TouchableOpacity
 									style={[styles.checkbox, item.completed && styles.checkboxChecked]}
 									onPress={() => toggleItem(item.id)}
@@ -179,14 +245,15 @@ export default function ListDetails() {
 										</View>
 									)}
 								</View>
-							</View>
+								</View>
+							</Animated.View>
 						))
 					)}
 				</View>
 			</ScrollView>
 
 			
-			<View style={styles.footer}>
+			<Animated.View style={[styles.footer, { transform: [{ translateY: footerTranslate }] }]}> 
 				<TouchableOpacity
 					style={[styles.footerButton, finalizada ? styles.footerButtonReativar : styles.footerButtonFinalizar]}
 					onPress={toggleFinalizar}
@@ -200,8 +267,8 @@ export default function ListDetails() {
 						{finalizada ? 'Reativar Lista' : 'Finalizar Lista'}
 					</Text>
 				</TouchableOpacity>
-			</View>
-		</View>
+			</Animated.View>
+		</Animated.View>
 	);
 }
 

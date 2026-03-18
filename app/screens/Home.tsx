@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Easing } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -7,10 +8,36 @@ type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function Home() {
     const navigation = useNavigation<HomeScreenNavigationProp>();
+    const screenOpacity = useRef(new Animated.Value(0)).current;
+    const cardScale = useRef(new Animated.Value(0.94)).current;
+    const buttonsTranslate = useRef(new Animated.Value(12)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(screenOpacity, {
+                toValue: 1,
+                duration: 320,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.spring(cardScale, {
+                toValue: 1,
+                speed: 14,
+                bounciness: 10,
+                useNativeDriver: true,
+            }),
+            Animated.timing(buttonsTranslate, {
+                toValue: 0,
+                duration: 320,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [cardScale, buttonsTranslate, screenOpacity]);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.card}>
+        <Animated.View style={[styles.container, { opacity: screenOpacity }]}> 
+            <Animated.View style={[styles.card, { transform: [{ scale: cardScale }] }]}> 
                <Image
                    source={require('../../assets/iconefodastico.png')}
                    style={styles.icon}
@@ -21,7 +48,7 @@ export default function Home() {
                 </Text>
 
                 
-                <View style={styles.buttonsContainer}>
+                <Animated.View style={[styles.buttonsContainer, { transform: [{ translateY: buttonsTranslate }] }]}> 
                     <TouchableOpacity
                         style={styles.btnCriar}
                         activeOpacity={0.8}
@@ -39,10 +66,10 @@ export default function Home() {
                         <Text style={styles.btnVerIcon}>☰</Text>
                         <Text style={styles.btnVerText}>Ver Minhas Listas</Text>
                     </TouchableOpacity>
-                </View>
-            </View>
+                </Animated.View> 
+            </Animated.View> 
             <Text style={styles.creditos}>Feito por Diego Ortiz</Text>
-        </View>
+        </Animated.View> 
     );
 }
 
