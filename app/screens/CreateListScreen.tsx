@@ -449,15 +449,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 6,
         backgroundColor: '#f0f0f0',
+        width: 55,
+        height: 45,
+        justifyContent: 'center',
+
     },
     unitChipSelected: {
         backgroundColor: '#1b7a2b',
         borderColor: '#1b7a2b',
     },
     unitChipText: {
-        fontSize: 13,
+        fontSize: 15,
         color: '#555555',
         fontWeight: 'bold',
+        alignSelf: 'center',
     },
     unitChipTextSelected: {
         color: '#ffffff',

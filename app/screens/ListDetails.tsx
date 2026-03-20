@@ -323,6 +323,9 @@ const styles = StyleSheet.create({
 		paddingVertical: 8,
 		paddingHorizontal: 12,
 		gap: 6,
+		height: 50,
+		width: 90,
+		justifyContent: 'center',
 	},
 	editButtonText: {
 		fontSize: 13,
@@ -406,8 +409,8 @@ const styles = StyleSheet.create({
 		backgroundColor: '#f0f0f0',
 	},
 	checkbox: {
-		width: 30,
-		height: 30,
+		width: 45,
+		height: 45,
 		borderRadius: 6,
 		borderWidth: 1,
 		borderColor: '#8c8c8c',
@@ -456,6 +459,7 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 8,
 		paddingVertical: 6,
 		gap: 6,
+		height: 45,
 	},
 	pricePrefix: {
 		fontSize: 14,
