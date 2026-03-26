@@ -32,6 +32,7 @@ export default function CreateListScreen() {
     const headerTranslate = useRef(new Animated.Value(-20)).current;
     const cardScale = useRef(new Animated.Value(0.96)).current;
     const footerTranslate = useRef(new Animated.Value(24)).current;
+    const useNativeDriver = Platform.OS !== 'web';
 
     useEffect(() => {
         if (isEditing) {
@@ -51,28 +52,28 @@ export default function CreateListScreen() {
                 toValue: 1,
                 duration: 320,
                 easing: Easing.out(Easing.ease),
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.spring(cardScale, {
                 toValue: 1,
                 speed: 14,
                 bounciness: 10,
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.spring(headerTranslate, {
                 toValue: 0,
                 speed: 14,
                 bounciness: 10,
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.timing(footerTranslate, {
                 toValue: 0,
                 duration: 280,
                 easing: Easing.out(Easing.cubic),
-                useNativeDriver: true,
+                useNativeDriver,
             }),
         ]).start();
-    }, [cardScale, footerTranslate, headerTranslate, screenOpacity]);
+    }, [cardScale, footerTranslate, headerTranslate, screenOpacity, useNativeDriver]);
 
     async function adicionarItem() {
         const nome = nomeItem.trim();
@@ -308,10 +309,7 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 420,
         elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
+        boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.1)',
         marginTop: 20,
         alignSelf: 'center',
     },

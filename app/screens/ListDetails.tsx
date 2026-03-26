@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Animated, Easing, Platform } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +21,7 @@ export default function ListDetails() {
 	const summaryScale = useRef(new Animated.Value(0.96)).current;
 	const footerTranslate = useRef(new Animated.Value(24)).current;
 	const itemAnimations = useRef<Record<string, Animated.Value>>({}).current;
+	const useNativeDriver = Platform.OS !== 'web';
 
 	const carregar = useCallback(async () => {
 		const listas = await carregarListas();
@@ -62,28 +63,28 @@ export default function ListDetails() {
 				toValue: 1,
 				duration: 300,
 				easing: Easing.out(Easing.ease),
-				useNativeDriver: true,
+				useNativeDriver,
 			}),
 			Animated.spring(headerTranslate, {
 				toValue: 0,
 				speed: 14,
 				bounciness: 10,
-				useNativeDriver: true,
+				useNativeDriver,
 			}),
 			Animated.spring(summaryScale, {
 				toValue: 1,
 				speed: 14,
 				bounciness: 10,
-				useNativeDriver: true,
+				useNativeDriver,
 			}),
 			Animated.timing(footerTranslate, {
 				toValue: 0,
 				duration: 260,
 				easing: Easing.out(Easing.cubic),
-				useNativeDriver: true,
+				useNativeDriver,
 			}),
 		]).start();
-	}, [footerTranslate, headerTranslate, screenOpacity, summaryScale]);
+	}, [footerTranslate, headerTranslate, screenOpacity, summaryScale, useNativeDriver]);
 
 	useEffect(() => {
 		if (!itens.length) return;
@@ -98,11 +99,11 @@ export default function ListDetails() {
 				duration: 260,
 				delay: index * 70,
 				easing: Easing.out(Easing.exp),
-				useNativeDriver: true,
+				useNativeDriver,
 			})
 		);
 		Animated.stagger(60, animations).start();
-	}, [itemAnimations, itens]);
+	}, [itemAnimations, itens, useNativeDriver]);
 
 	function formatarQtd(qty: number, unit?: string): string {
 		const qtdStr = qty % 1 === 0 ? `${qty}` : `${qty}`.replace('.', ',');

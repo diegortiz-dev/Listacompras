@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, TouchableWithoutFeedback, Animated, Easing, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +27,7 @@ export default function MyLists() {
     const headerTranslate = useRef(new Animated.Value(-30)).current;
     const ctaScale = useRef(new Animated.Value(0.9)).current;
     const cardAnimations = useRef<Record<string, Animated.Value>>({}).current;
+    const useNativeDriver = Platform.OS !== 'web';
 
     const carregar = useCallback(async () => {
         const resultado = await carregarListas();
@@ -39,22 +40,22 @@ export default function MyLists() {
                 toValue: 1,
                 duration: 300,
                 easing: Easing.out(Easing.ease),
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.spring(headerTranslate, {
                 toValue: 0,
                 speed: 14,
                 bounciness: 10,
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.spring(ctaScale, {
                 toValue: 1,
                 speed: 12,
                 bounciness: 12,
-                useNativeDriver: true,
+                useNativeDriver,
             }),
         ]).start();
-    }, [ctaScale, headerTranslate, screenOpacity]);
+    }, [ctaScale, headerTranslate, screenOpacity, useNativeDriver]);
 
     useFocusEffect(
         useCallback(() => {
@@ -77,12 +78,12 @@ export default function MyLists() {
                 duration: 320,
                 delay: index * 70,
                 easing: Easing.out(Easing.exp),
-                useNativeDriver: true,
+                useNativeDriver,
             })
         );
 
         Animated.stagger(60, animations).start();
-    }, [cardAnimations, listas]);
+    }, [cardAnimations, listas, useNativeDriver]);
 
     function formatarData(dataIso: string) {
         const data = new Date(dataIso);
@@ -109,6 +110,9 @@ export default function MyLists() {
     function openMenu(id: string) {
         const ref = menuRefs.current[id];
         if (!ref) return;
+        if (Platform.OS === 'web' && typeof document !== 'undefined') {
+            (document.activeElement as HTMLElement | null)?.blur();
+        }
         ref.measure((_fx, _fy, width, height, px, py) => {
             setMenuPos({ x: px + width, y: py + height });
             setOpenedMenuId(id);
@@ -466,10 +470,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         width: 170,
         elevation: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.18,
-        shadowRadius: 8,
+        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.18)',
     },
 
     menuButton: {

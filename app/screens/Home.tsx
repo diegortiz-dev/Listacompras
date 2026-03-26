@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Animated, Easing, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -11,6 +11,7 @@ export default function Home() {
     const screenOpacity = useRef(new Animated.Value(0)).current;
     const cardScale = useRef(new Animated.Value(0.94)).current;
     const buttonsTranslate = useRef(new Animated.Value(12)).current;
+    const useNativeDriver = Platform.OS !== 'web';
 
     useEffect(() => {
         Animated.parallel([
@@ -18,22 +19,22 @@ export default function Home() {
                 toValue: 1,
                 duration: 320,
                 easing: Easing.out(Easing.ease),
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.spring(cardScale, {
                 toValue: 1,
                 speed: 14,
                 bounciness: 10,
-                useNativeDriver: true,
+                useNativeDriver,
             }),
             Animated.timing(buttonsTranslate, {
                 toValue: 0,
                 duration: 320,
                 easing: Easing.out(Easing.cubic),
-                useNativeDriver: true,
+                useNativeDriver,
             }),
         ]).start();
-    }, [cardScale, buttonsTranslate, screenOpacity]);
+    }, [cardScale, buttonsTranslate, screenOpacity, useNativeDriver]);
 
     return (
         <Animated.View style={[styles.container, { opacity: screenOpacity }]}> 
@@ -95,10 +96,7 @@ const styles = StyleSheet.create({
         width: '100%',
         maxWidth: 420,
         elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.12,
-        shadowRadius: 10,
+        boxShadow: '0px 3px 10px rgba(0, 0, 0, 0.12)',
         height: 500,
     },
     title: {
